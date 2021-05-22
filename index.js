@@ -14,4 +14,6 @@ mongoose.connect('mongodb://localhost:27017/AgendaWebPlusBV', {useNewUrlParser: 
             console.log('Servidor de experss corriendo')
         })
     })
+
+    
     .catch((err)=>console.log('Error al conectase a la BD', err))
