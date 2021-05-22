@@ -1,0 +1,17 @@
+'use strict'
+
+var mongoose = require('mongoose')
+var Schema = mongoose.Schema
+
+var hotelSchema = Schema({
+    name: String,
+    address: String,
+    phone: String,
+    image: String,
+    admin: [{type: Schema.ObjectId, ref:"user"}],
+    room: [{type: Schema.ObjectId, ref: "room"}],
+    event: [{type: Schema.ObjectId, ref:"event"}],
+    reservation: [{type: Schema.ObjectId, ref:'reservation'}]
+})
+
+module.exports = mongoose.model('hotel', hotelSchema)
