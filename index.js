@@ -1,6 +1,5 @@
 'use strict'
 
-const { suppressDeprecationWarnings } = require('moment');
 var mongoose = require('mongoose');
 var app = require('./app');
 var user = require('./controllers/user.controller')
