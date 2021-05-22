@@ -1,9 +1,7 @@
 'use strict'
 
-User (){
+const { suppressDeprecationWarnings } = require("moment")
 
-}
 
-puto(){
-asdfad
-}
+
+
