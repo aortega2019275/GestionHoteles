@@ -13,7 +13,7 @@ api.post('/register', userController.register)
 api.post('/login', userController.login)
 api.post('/createUserAdminHotel', [mdAuth.ensureAuth, mdAuth.ensureAuthAdmin], userController.createUserAdminHotel)
 api.put('/updateUser/:id', mdAuth.ensureAuth, userController.updateUser)
-api.delete('/deleteUser/:id', mdAuth.ensureAuth, userController.removeUser)
+api.put('/deleteUser/:id', mdAuth.ensureAuth, userController.removeUser)
 
 //Service
 

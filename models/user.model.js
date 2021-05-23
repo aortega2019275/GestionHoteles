@@ -12,6 +12,8 @@ var userSchema = Schema({
     image: String,
     role: String,
     phone: String,
+    age: Date,
+    country: String,
     reservations: [{type: Schema.ObjectId, ref: "reservation"}],
     history: [{type: Schema.ObjectId, ref: "hotel"}],
     invoice: [{type: Schema.ObjectId, ref: 'invoice'}]

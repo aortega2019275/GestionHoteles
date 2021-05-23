@@ -54,7 +54,10 @@ function login(req, res){
                         return res.status(500).send({message: "Error al comparar la contraseña"})
                     }else if(checkPassword){
                         if(params.gettoken){
-                            return res.send({ token: jwt.createToken(userFind), userFind })
+                            res.send({
+                                token: jwt.createToken(userFind),
+				                user: userFind
+                            })
                         }else{
                             return res.send({ message: "Usuario logeado", userFind})
                         }
@@ -157,75 +160,96 @@ function register(req, res){
 }
 
 function updateUser(req, res){
-    var userId = req.params.id;
-    var update = req.body;
+    let userId = req.params.id;
+    let update = req.body;
 
     if(userId != req.user.sub){
-        return res.status(404).send({message: "identificacion erronea"})
+        return res.status(401).send({ message: 'No tienes permiso para realizar esta acción'});
     }else{
         if(update.password || update.role){
-            return res.status(401).send({message: "Los parametros password y role no se pueden modificar"})
+            return res.status(401).send({ message: 'No se puede actualizar la contraseña ni el rol desde esta función'});
         }else{
             if(update.username){
-                User.findOne({username: update.username}, (err, userFind) => {
+                User.findOne({username: update.username.toLowerCase()}, (err, userFind)=>{
                     if(err){
-                        return res.status(500).send({message: "Error general"})
+                        return res.status(500).send({ message: 'Error general'});
                     }else if(userFind){
-                        User.findByIdAndUpdate(userId, update, {new: true}, (err, userUpdated) => {
-                            if(err){
-                                return res.status(500).send({message: "Error de actualizacion de usuario"})
-                            }else if(userUpdated){
-                                return res.send({message:"Usuario actualizado", userUpdated})
-                            }else{
-                                return res.status(401).send({message: "No se actualizar"})
-                            }
-                        })
-                    }else{  
-                        return res.status(203).send({message: "sin datos encontrados"})
-                    }
-                })
-            }else{
-                return res.status(401).send({message: "Ingrese por favor el campo minimo"})
-            }
-        }
-    }  
-}
-
-function removeUser(req, res){
-    var userId = req.params.id;
-    var params = req.body;
-    
-    if(userId != req.user.sub){
-        return res.status(403).send({message: "identificacion erronea"})
-    }else{
-        if(params.password){
-            User.findOne({_id: userId}, (err, userFind) => {
-                if(err){
-                    return res.status(500).send({message: "Error al encontrar usuarios"})
-                }else if(userFind){
-                    bcrypt.compare(params.password, userFind.password, (err, checkPassword) => {
-                        if(err){
-                            return res.status(500).send({message: "Error al encontrar diferencias de contraseña"})
-                        }else if(checkPassword){
-                            User.findByIdAndRemove(userId, (err, userRemoved) => {
+                        if(userFind._id == req.user.sub){
+                            User.findByIdAndUpdate(userId, update, {new: true}, (err, userUpdated)=>{
                                 if(err){
-                                    return res.status(500).send({message: "Error al eliminar el usuario"})
-                                }else if(userRemoved){
-                                    return res.send({message: "Usuario eliminado satisfactoriamente", userRemoved})
+                                    return res.status(500).send({message: 'Error general al actualizar'});
+                                }else if(userUpdated){
+                                    return res.send({message: 'Usuario actualizado', userUpdated});
                                 }else{
-                                    return res.status(401).send({message: "No se pudo eliminar"})
+                                    return res.send({message: 'No se pudo actualizar al usuario'});
                                 }
                             })
                         }else{
-                            return res.status(401).send({message: "Contraseña diferente"})
+                            return res.send({message: 'Nombre de usuario ya en uso'});
+                        }
+                    }else{
+                        User.findByIdAndUpdate(userId, update, {new: true}, (err, userUpdated)=>{
+                            if(err){
+                                return res.status(500).send({message: 'Error general al actualizar'});
+                            }else if(userUpdated){
+                                return res.send({message: 'Usuario actualizado', userUpdated});
+                            }else{
+                                return res.send({message: 'No se pudo actualizar al usuario'});
+                            }
+                        })
+                    }
+                })
+            }else{
+                User.findByIdAndUpdate(userId, update, {new: true}, (err, userUpdated)=>{
+                    if(err){
+                        return res.status(500).send({message: 'Error general al actualizar'});
+                    }else if(userUpdated){
+                        return res.send({message: 'Usuario actualizado', userUpdated});
+                    }else{
+                        return res.send({message: 'No se pudo actualizar al usuario'});
+                    }
+                })
+            }
+        }
+    }
+    
+}
+
+function removeUser(req, res){
+    let userId = req.params.id;
+    let params = req.body;
+
+    if(userId != req.user.sub){
+        return res.status(403).send({message: ' No tienes permiso para realizar esta acción'})
+    }else{
+        if(!params.password){
+            return res.status(401).send({message: 'Por favor ingresa la contraseña para poder eliminar tu cuenta'});
+        }else{
+            User.findById(userId, (err, userFind)=>{
+                if(err){
+                    return res.status(500).send({message: 'Error general'})
+                }else if(userFind){
+                    bcrypt.compare(params.password, userFind.password, (err, checkPassword)=>{
+                        if(err){
+                            return res.status(500).send({message: 'Error general al verificar contraseña'})
+                        }else if(checkPassword){
+                            User.findByIdAndRemove(userId, (err, userFind)=>{
+                                if(err){
+                                    return res.status(500).send({message: 'Error general al verificar contraseña'})
+                                }else if(userFind){
+                                    return res.send({message: 'Usuario eliminado', userRemoved:userFind})
+                                }else{
+                                    return res.status(404).send({message: 'Usuario no encontrado o ya eliminado'})
+                                }
+                            })
+                        }else{
+                            return res.status(403).send({message: 'Contraseña incorrecta, solo con tu contraseña podrás eliminar tu cuenta'})
                         }
                     })
                 }else{
-                    return res.status(400).send({message: "No se encontro el usuario"})
+                    return res.status(404).send({message: 'Usuario inexistente o ya eliminado'})
                 }
             })
-        }else{
-            return res.status(401).send({message: "ingrese la contraseña"})
         }
     }
 }
@@ -243,11 +267,11 @@ function getUsers(req, res){
 }
 
 function getUser(req, res){
-    User.findById(req.params.id).exec((err, userFinds) => {
+    User.findById(req.params.id).exec((err, userFind) => {
         if(err){
             return res.status(500).send({message: "Error al obtener el usuario"})
-        }else if(userFinds){
-            return res.send({message: "Usuario encontrado", userFinds})
+        }else if(userFind){
+            return res.send({message: "Usuario encontrado", userFind})
         }else{ 
             return res.status(404).send({message: "No existe ningun usuario"})
         }
