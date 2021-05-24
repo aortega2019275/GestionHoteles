@@ -4,6 +4,69 @@ var User = require('../models/user.model');
 var bcrypt = require('bcrypt-nodejs');
 var jwt = require('../services/jwt');
 
+var fs = require('fs');
+var path = require('path');
+
+function uploadImage(req, res){
+    var userId = req.params.id;
+    var fileName = 'Sin imagen';
+
+    if(userId != req.user.sub){
+        res.status(403).send({message: 'No tienes permisos'});
+    }else{
+        if(req.files){
+            //captura la ruta de la imagen
+            var filePath = req.files.image.path;
+            //separa en indices cada carpeta
+            //si se trabaja en linux ('\');
+            var fileSplit = filePath.split('\\');
+            //captura el nombre de la imagen
+            var fileName = fileSplit[2];
+
+            var ext = fileName.split('\.');
+            var fileExt = ext[1];
+
+            if( fileExt == 'png' ||
+                fileExt == 'jpg' ||
+                fileExt == 'jpeg' ||
+                fileExt == 'gif'){
+                    User.findByIdAndUpdate(userId, {image: fileName}, {new:true}, (err, userUpdated)=>{
+                        if(err){
+                            return res.status(500).send({message: 'Error general'});
+                        }else if(userUpdated){
+                            return res.send({user: userUpdated, userImage: userUpdated.image});
+                        }else{
+                            return res.status(404).send({message: 'No se actualizó'});
+                        }
+                    })
+                }else{
+                    fs.unlink(filePath, (err)=>{
+                        if(err){
+                            return res.status(500).send({message: 'Error al eliminar, la extensión no es válida'});
+                        }else{
+                            return res.status(403).send({message: 'Extensión no válida, archivo eliminado'});
+                        }
+                    })
+                }
+        }else{
+            return res.status(404).send({message: 'No has subido una imagen'});
+        }
+    }
+}
+
+function getImage(req, res){
+    var fileName = req.params.fileName;
+    var pathFile = './uploads/users/' + fileName;
+
+    fs.exists(pathFile, (exists)=>{
+        if(exists){
+            return res.sendFile(path.resolve(pathFile))
+        }else{
+           return res.status(404).send({message: 'Imagen inexistente'});
+        }
+    })
+}
+
 function initAdmin(req, res){
     let user = new User();
     user.username = 'AdminApp'
@@ -11,13 +74,13 @@ function initAdmin(req, res){
 
     User.findOne({username: user.username}, (err, adminFind)=>{
         if(err){
-            return res.status(500).send({message: 'general error'});
+            return res.status(500).send({message: 'Error general'});
         }else if(adminFind){
             return console.log('Usuario admin ya fue creado')
         }else{
             bcrypt.hash(user.password, null, null, (err, passwordHash)=>{
                 if(err){
-                    return res.status(500).send({message: 'Error general al comparar contraseña'})
+                    return res.status(500).send({message: 'Error al intentar comparar las contraseñas'})
                 }else if(passwordHash){
                     user.password = passwordHash;
                     user.username = user.username;
@@ -32,7 +95,7 @@ function initAdmin(req, res){
                         }
                     })
                 }else{
-                    return res.status(403).send({message: 'Contraseña no logro encriptarse'})
+                    return res.status(403).send({message: 'La encriptación de la contraseña falló'})
                 }
             })
         }
@@ -66,7 +129,7 @@ function login(req, res){
                     }
                 })
             }else{
-                return res.send({message: "Usuario sin existencia"})
+                return res.send({message: "Usuario no existente"})
             }
         })
     }else{
@@ -89,14 +152,14 @@ function createUserAdminHotel(req, res){
             }else{
                 bcrypt.hash(params.password,null,null,(err, passwordHash)=>{
                     if(err){
-                        return res.status(500).send({message: "Ocurrio un error al encriptar la password"});
+                        return res.status(500).send({message: "La encriptación de la contraseña falló"});
                     }else if(passwordHash){
                         user.password = passwordHash;
                         user.name = params.name;
                         user.lastname = params.lastname;
                         user.username = params.username;
                         user.email = params.email;
-                        user.role = 'ROLE_ADMIN_HOTEL';
+                        user.role = params.role;
                         user.save((err,userSaved)=>{
                             if(err){
                                 return res.status(500).send({message: "Error al guardar usuario"});
@@ -107,7 +170,7 @@ function createUserAdminHotel(req, res){
                             }
                         })
                     }else{
-                        return res.status(401).send({message: "la contraseña no encriptada"});
+                        return res.status(401).send({message: "La encriptación de la contraseña falló"});
                     }
                 })
             }
@@ -127,11 +190,11 @@ function register(req, res){
             if(err){
                 return res.status(404).send({message: 'Ocurrio un error al buscar el usuario'})
             }else if(userFind){
-                return res.send({message: "Nombre no disponible"})
+                return res.send({message: "Nombre no disponible, intenta con otro"})
             }else{
                 bcrypt.hash(params.password, null, null, (err, passwordHash) => {
                     if(err){
-                        return res.status(404).send({message: "Error de encriptación", err})
+                        return res.status(404).send({message: "La encriptación de la contraseña falló", err})
                     }else if(passwordHash){
                         user.password = passwordHash;
                         user.name = params.name;
@@ -141,11 +204,11 @@ function register(req, res){
                         user.role = 'ROL_USER';
                         user.save((err, userSaved) => {
                             if(err){
-                                return res.status(404).send({message: "ocurrio un error al querer guardar el usuario"})
+                                return res.status(404).send({message: "ocurrio un error al intentar guardar el usuario"})
                             }else if(userSaved){
                                 return res.send({message: "Usuario creado satisfactoriamente",userSaved})
                             }else{
-                                return res.status(403).send({message: "Error al Guardar Datos"})
+                                return res.status(403).send({message: "Error al intentar guardar Datos"})
                             }
                         })
                     }else{
@@ -164,7 +227,7 @@ function updateUser(req, res){
     let update = req.body;
 
     if(userId != req.user.sub){
-        return res.status(401).send({ message: 'No tienes permiso para realizar esta acción'});
+        return res.status(401).send({ message: 'No posees permisos necesarios para realizar esta acción'});
     }else{
         if(update.password || update.role){
             return res.status(401).send({ message: 'No se puede actualizar la contraseña ni el rol desde esta función'});
@@ -220,7 +283,7 @@ function removeUser(req, res){
     let params = req.body;
 
     if(userId != req.user.sub){
-        return res.status(403).send({message: ' No tienes permiso para realizar esta acción'})
+        return res.status(403).send({message: 'No posees permisos necesarios para realizar esta acción'})
     }else{
         if(!params.password){
             return res.status(401).send({message: 'Por favor ingresa la contraseña para poder eliminar tu cuenta'});
@@ -243,7 +306,7 @@ function removeUser(req, res){
                                 }
                             })
                         }else{
-                            return res.status(403).send({message: 'Contraseña incorrecta, solo con tu contraseña podrás eliminar tu cuenta'})
+                            return res.status(403).send({message: 'Contraseña incorrecta'})
                         }
                     })
                 }else{
@@ -287,5 +350,7 @@ module.exports = {
     login,
     removeUser,
     updateUser,
-    createUserAdminHotel
+    createUserAdminHotel,
+    uploadImage,
+    getImage
 }
