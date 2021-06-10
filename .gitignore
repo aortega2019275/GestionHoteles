@@ -1,3 +1,9 @@
+# dependencies
+/node_modules
+/Api/node_modules
+C:\Users\oandr\Desktop\Proyect's\Proyects Js\GestiosHotelesBackEnd\GestionHotelesBackend\node_modules
+
+
 # Build and Release Folders
 bin-debug/
 bin-release/
