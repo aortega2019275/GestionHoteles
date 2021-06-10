@@ -5,7 +5,7 @@ var bcrypt = require('bcrypt-nodejs')
 
 
 function getHotels(req, res){
-        Hotel.find({}).populate('room').exec((err, hotelsFound) => {
+        Hotel.find({}).populate('event','room').exec((err, hotelsFound) => {
             if(err){
                 return res.status(500).send({message: "Error al realizar la busqueda de hoteles"})
             }else if (hotelsFound){
@@ -107,6 +107,8 @@ function deleteHotel(req, res){
         return res.status(404).send({message: "Por favor ingrese los parametros minimos de Uri y Body"})
     }
 }
+
+
 
 
 module.exports = {

@@ -4,7 +4,7 @@ var Event = require('../models/event.model');
 var Hotel = require('./../models/hotel.model');
 
 function getEvents(req, res){
-    Event.find({}).exec((err, foundEvents) => {
+    Event.find({}).populate('event').exec((err, foundEvents) => {
         if(err){
             return res.status(500).send({message: "Hubo un error al realizar la busqueda de eventos"})
         }else if(foundEvents){ 
@@ -12,7 +12,7 @@ function getEvents(req, res){
         }else{
             return res.status(404).send({message: "No encontramos ningún evento con esas caracteristicas"})
         }
-    }).populate('event')
+    })
 }
 
 function getEvent(req, res){
